@@ -1,7 +1,7 @@
 CFLAGS = -g -Wall -Wextra -pedantic -std=c99 -lGLEW -lGLFW -framework OpenGL -lCGLM
 CC = clang
-OBJECTS=renderer.o vertex_buffer.o utils.o main.o index_buffer.o stb_image.o camera.o
-SHADERS=src/shaders/vshader.glsl src/shaders/fshader.glsl
+OBJECTS=renderer.o vertex_buffer.o main.o index_buffer.o stb_image.o camera.o shader.o
+SHADERS=src/shaders/vshader.glsl src/shaders/fshader.glsl src/shaders/lfshader.glsl
 OBJECTOUT=$(addprefix dist/, $(OBJECTS))
 
 

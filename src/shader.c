@@ -1,9 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-
-#include "utils.h"
+#include "shader.h"
 
 char* read_shader_file(const char* file_name, long* shader_code_length) {
   FILE * shader_file;
@@ -106,8 +101,44 @@ GLuint load_shaders(const char * vertex_file_path, const char * fragment_file_pa
   return program_id;
 }
 
-utils_t Utils = {
-    .load_shaders = load_shaders
+
+
+Shader new(const char *vertexPath, const char *fragmentPath) {
+  Shader shader;
+  shader.id = load_shaders(vertexPath, fragmentPath);
+  return shader;
+}
+
+void use(Shader shader) {
+  glUseProgram(shader.id);
+}
+
+void setInt(Shader shader, const char *name, int value) {
+  glUniform1i(glGetUniformLocation(shader.id, name), value);
+}
+
+void setFloat(Shader shader, const char *name, float value) {
+  glUniform1f(glGetUniformLocation(shader.id, name), value);
+}
+
+void setVec3(Shader shader, const char *name, vec3 value) {
+  glUniform3f(glGetUniformLocation(shader.id, name), value[0], value[1], value[2]);
+}
+
+void setMat4(Shader shader, const char *name, mat4 value) {
+  glUniformMatrix4fv(glGetUniformLocation(shader.id, name), 1, GL_FALSE, value);
+}
+
+void delete(Shader shader) {
+  glDeleteProgram(shader.id);
+}
+
+ShaderNS_t ShaderNS = {
+  .new = new,
+  .use = use,
+  .setInt = setInt,
+  .setFloat = setFloat,
+  .setMat4 = setMat4,
+  .setVec3 = setVec3,
+  .delete = delete
 };
-
-

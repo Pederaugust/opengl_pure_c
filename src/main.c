@@ -9,13 +9,60 @@
 
 #define APP_NAME "my_gl"
 
-#include "utils.h"
 #include "renderer.h"
 #include "vertex_buffer.h"
 #include "index_buffer.h"
 #include "stb_image.h"
+#include "shader.h"
 
 #include "camera.h"
+
+float cube[] = {
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+};
+
+VertexBuffer* init_cube(GLuint VAO);
+void draw_cube(Shader shader, GLuint VAO, vec3 position, vec3 scale);
 
 void process_input(GLFWwindow* window) {
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
@@ -65,12 +112,13 @@ void register_texture(GLuint* texture, char * name) {
 }
 
 int main(int argc, char** argv) {
-  if (argc < 3) {
-    fprintf(stderr, "Usage: %s <vertex_shader_path> <fragment_shader_path>\n", argv[0]);
+  if (argc < 4) {
+    fprintf(stderr, "Usage: %s <vertex_shader_path> <fragment_shader_path> <light_fragment_shader_path>\n", argv[0]);
     return -1;
   }
   char* vertex_shader_path = argv[1];
   char* fragment_shader_path = argv[2];
+  char* light_fragment_shader_path = argv[3];
 
   GLFWwindow* window;
   
@@ -114,146 +162,92 @@ int main(int argc, char** argv) {
   }
 
   {
-
-    unsigned int texture1;
-    register_texture(&texture1, "assets/awesomeface.jpg");
-    unsigned int texture2;
-    register_texture(&texture2, "assets/container.jpg");
-
-    float cube[] = {
-      -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-    };
-
-    vec3 cube_positions[] = {
-      { 0.0f,  0.0f,  0.0f}, 
-      { 2.0f,  5.0f, -15.0f}, 
-      {-1.5f, -2.2f, -2.5f},  
-      {-3.8f, -2.0f, -12.3f},  
-      { 2.4f, -0.4f, -3.5f},  
-      {-1.7f,  3.0f, -7.5f},  
-      { 1.3f, -2.0f, -2.5f},  
-      { 1.5f,  2.0f, -2.5f}, 
-      { 1.5f,  0.2f, -1.5f}, 
-      {-1.3f,  1.0f, -1.5f}
-    };
-
     GLuint VAO;
     glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
+    VertexBuffer* v = init_cube(VAO);
+   
+    GLuint lightVAO;
+    glGenVertexArrays(1, &lightVAO);
+    VertexBuffer* lv = init_cube(lightVAO);
 
-    VertexBuffer vb = VertexBufferNS.create(cube, sizeof(cube));
+    Shader default_shader = ShaderNS.new(vertex_shader_path, fragment_shader_path);
+    ShaderNS.use(default_shader);
+    ShaderNS.setVec3(default_shader, "objectColor", (vec3){1.0f, 0.5f, 0.31f});
+    ShaderNS.setVec3(default_shader, "lightColor", (vec3){1.0f, 1.0f, 1.0f});
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    GLuint shader_program = Utils.load_shaders(vertex_shader_path, fragment_shader_path);
-    gl_check_error();
+    Shader light_shader = ShaderNS.new(vertex_shader_path, light_fragment_shader_path);
 
     glEnable(GL_DEPTH_TEST);
-
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glUseProgram(shader_program);
-
-    glUniform1i(glGetUniformLocation(shader_program, "texture1"), 0);
-    glUniform1i(glGetUniformLocation(shader_program, "texture2"), 1);
-    
     while (!glfwWindowShouldClose(window)) {
       process_input(window);
       glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
       gl_clear_error();
 
-
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, texture1);
-      glActiveTexture(GL_TEXTURE1);
-      glBindTexture(GL_TEXTURE_2D, texture2);
       
       CameraNS.update_frame();
-      mat4 view = GLM_MAT4_IDENTITY_INIT;
-      vec3 res;
-      glm_vec3_add(Camera.position, Camera.front, res);
+      
+      vec3 light_pos = {sin(glfwGetTime()) * 2.0f, sin(glfwGetTime() / 2.0f) * 1.0f, 2.0f};
 
-      glm_lookat(Camera.position, res, Camera.up, view);
+      ShaderNS.use(light_shader);
+      ShaderNS.setVec3(light_shader, "lightPos", light_pos);
+      
+      ShaderNS.use(default_shader);
+      ShaderNS.setVec3(default_shader, "lightPos", light_pos);
+      ShaderNS.setVec3(default_shader, "viewPos", Camera.position);
 
-      int view_location = glGetUniformLocation(shader_program, "view");
-      glUniformMatrix4fv(view_location, 1, GL_FALSE, (float*)view);
-
-
-      mat4 projection = GLM_MAT4_IDENTITY_INIT;
-      glm_perspective(glm_rad(Camera.fov), SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f, projection);
-      int projection_location = glGetUniformLocation(shader_program, "projection");
-      glUniformMatrix4fv(projection_location, 1, GL_FALSE, (float*)projection);
-    
-
-      mat4 model = GLM_MAT4_IDENTITY_INIT;
-      glm_rotate(model, glm_rad(-50.0f), (vec3){0.5f, 1.0f, 0.0f});
-      int model_location = glGetUniformLocation(shader_program, "model");
-      glUniformMatrix4fv(model_location, 1, GL_FALSE, (float*)model);
-
-      glBindVertexArray(VAO);
-      for (unsigned int i = 0; i < 10; i++) {
-        mat4 model = GLM_MAT4_IDENTITY_INIT;
-        glm_translate(model, cube_positions[i]);
-        float angle = 20.0f * i;
-        glm_rotate(model, glm_rad(angle), (vec3){1.0f, 0.3f, 0.5f});
-        glUniformMatrix4fv(model_location, 1, GL_FALSE, (float*)model);
-
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-      }
+      draw_cube(default_shader, VAO, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f});
+      draw_cube(light_shader, lightVAO, light_pos, (vec3){0.2f, 0.2f, 0.2f});
 
       gl_check_error();
       glfwSwapBuffers(window);
       glfwPollEvents();
     }
 
-    glDeleteProgram(shader_program);
-    VertexBufferNS.delete(&vb);
+    VertexBufferNS.delete(v);
+    VertexBufferNS.delete(lv);
+    ShaderNS.delete(default_shader);
+    ShaderNS.delete(light_shader);
   }
   glfwTerminate();
 
   exit(EXIT_SUCCESS);
 }
+
+VertexBuffer* init_cube(GLuint VAO) {
+  glBindVertexArray(VAO);
+
+  VertexBuffer vb = VertexBufferNS.create(cube, sizeof(cube));
+
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+  glEnableVertexAttribArray(1);
+  glBindVertexArray(0);
+  return &vb;
+}
+
+void draw_cube(Shader shader, GLuint VAO, vec3 position, vec3 scale) {
+  ShaderNS.use(shader);
+  mat4 view = GLM_MAT4_IDENTITY_INIT;
+  vec3 res;
+  glm_vec3_add(Camera.position, Camera.front, res);
+  glm_lookat(Camera.position, res, Camera.up, view);
+  
+  ShaderNS.setMat4(shader, "view", view);
+
+  mat4 projection = GLM_MAT4_IDENTITY_INIT;
+  glm_perspective(glm_rad(Camera.fov), SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f, projection);
+
+  ShaderNS.setMat4(shader, "projection", projection);
+
+  glBindVertexArray(VAO);
+  mat4 model = GLM_MAT4_IDENTITY_INIT;
+  glm_translate(model, position);
+  glm_scale(model, scale);
+
+  ShaderNS.setMat4(shader, "model", model);
+
+  glDrawArrays(GL_TRIANGLES, 0, 36); 
+}
+
